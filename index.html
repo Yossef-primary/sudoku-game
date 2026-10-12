@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sudoku Master | Play Online</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* -------------------------------------------------------------
+       CSS Custom Properties & Theme Setup
+       ------------------------------------------------------------- */
+    :root {
+      --bg-primary: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-board: #1e293b;
+      --border-color: #cbd5e1;
+      --border-subgrid: #334155;
+      --cell-bg: #ffffff;
+      --cell-hover: #f1f5f9;
+      --cell-selected: #bfdbfe;
+      --cell-highlight: #eff6ff;
+      --cell-same-number: #dbeafe;
+      --cell-error: #fecaca;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-fixed: #0f172a;
+      --text-user: #2563eb;
+      --text-error: #dc2626;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --accent-light: #dbeafe;
+      --note-color: #64748b;
+      --key-bg: #f1f5f9;
+      --key-hover: #e2e8f0;
+      --key-active: #cbd5e1;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #0f172a;
+      --bg-card: #1e293b;
+      --bg-board: #475569;
+      --border-color: #334155;
+      --border-subgrid: #64748b;
+      --cell-bg: #1e293b;
+      --cell-hover: #334155;
+      --cell-selected: #1e3a8a;
+      --cell-highlight: #1e293b;
+      --cell-same-number: #172554;
+      --cell-error: #7f1d1d;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-fixed: #f8fafc;
+      --text-user: #60a5fa;
+      --text-error: #ef4444;
+      --accent: #3b82f6;
+      --accent-hover: #60a5fa;
+      --accent-light: #1e3a8a;
+      --note-color: #94a3b8;
+      --key-bg: #334155;
+      --key-hover: #475569;
+      --key-active: #64748b;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 16px;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    /* -------------------------------------------------------------
+       App Header & Nav
+       ------------------------------------------------------------- */
+    header {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 4px 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      border-radius: var(--radius-sm);
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 700;
+      font-size: 1.1rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .brand-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .icon-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 1.1rem;
+      transition: all 0.15s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .icon-btn:hover {
+      background: var(--key-hover);
+      transform: translateY(-1px);
+    }
+
+    /* -------------------------------------------------------------
+       Game Container & Info Stats Bar
+       ------------------------------------------------------------- */
+    .game-wrapper {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-bar {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stat-group {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .stat-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .stat-value.difficulty-tag {
+      color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* -------------------------------------------------------------
+       Difficulty Selection Bar
+       ------------------------------------------------------------- */
+    .difficulty-bar {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .diff-btn {
+      padding: 8px 4px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: center;
+    }
+
+    .diff-btn:hover {
+      background: var(--key-hover);
+      color: var(--text-main);
+    }
+
+    .diff-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* -------------------------------------------------------------
+       Sudoku Board Grid
+       ------------------------------------------------------------- */
+    .board-container {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      max-width: 480px;
+      max-height: 480px;
+      background: var(--bg-board);
+      border: 3px solid var(--border-subgrid);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      grid-template-rows: repeat(9, 1fr);
+      position: relative;
+    }
+
+    .cell {
+      background-color: var(--cell-bg);
+      border: 1px solid var(--border-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: clamp(1.1rem, 4vw, 1.6rem);
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+      transition: background-color 0.12s ease;
+      outline: none;
+    }
+
+    /* 3x3 Subgrid Divider Lines */
+    .cell:nth-child(3n) {
+      border-right: 3px solid var(--border-subgrid);
+    }
+    .cell:nth-child(9n) {
+      border-right: none;
+    }
+    .cell:nth-child(n+19):nth-child(-n+27),
+    .cell:nth-child(n+46):nth-child(-n+54) {
+      border-bottom: 3px solid var(--border-subgrid);
+    }
+
+    /* Visual Cell Highlights */
+    .cell.given {
+      font-weight: 700;
+      color: var(--text-fixed);
+    }
+
+    .cell.user-filled {
+      color: var(--text-user);
+      font-weight: 600;
+    }
+
+    .cell.highlighted {
+      background-color: var(--cell-highlight);
+    }
+
+    .cell.same-number {
+      background-color: var(--cell-same-number);
+    }
+
+    .cell.selected {
+      background-color: var(--cell-selected) !important;
+    }
+
+    .cell.conflict {
+      background-color: var(--cell-error) !important;
+      color: var(--text-error) !important;
+      animation: shake 0.25s ease-in-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-3px); }
+      75% { transform: translateX(3px); }
+    }
+
+    /* Pencil / Notes Grid Inside Cell */
+    .notes-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      width: 100%;
+      height: 100%;
+      padding: 2px;
+      pointer-events: none;
+    }
+
+    .note-item {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: clamp(0.55rem, 1.8vw, 0.72rem);
+      font-weight: 600;
+      color: var(--note-color);
+      line-height: 1;
+    }
+
+    /* -------------------------------------------------------------
+       Quick Controls & Action Toolbar
+       ------------------------------------------------------------- */
+    .actions-bar {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .action-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 8px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      color: var(--text-main);
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 600;
+      transition: all 0.15s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .action-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2.2;
+    }
+
+    .action-btn:hover {
+      background: var(--key-hover);
+      transform: translateY(-1px);
+    }
+
+    .action-btn.active {
+      background: var(--accent-light);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* -------------------------------------------------------------
+       Number Pad (1-9)
+       ------------------------------------------------------------- */
+    .numpad-container {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 6px;
+    }
+
+    .numpad-btn {
+      aspect-ratio: 1 / 1.15;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      font-size: clamp(1.1rem, 3.5vw, 1.45rem);
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      transition: all 0.12s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .numpad-btn:hover {
+      background: var(--key-hover);
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .numpad-btn:active {
+      transform: translateY(0);
+      background: var(--key-active);
+    }
+
+    .numpad-btn.completed {
+      opacity: 0.25;
+      pointer-events: none;
+    }
+
+    .remaining-count {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    /* -------------------------------------------------------------
+       Footer Controls (New Game, Validate, Reset)
+       ------------------------------------------------------------- */
+    .primary-controls {
+      width: 100%;
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .btn-main {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border: 1px solid var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background: var(--key-hover);
+    }
+
+    /* -------------------------------------------------------------
+       Modal & Dialogs (Victory & Pause)
+       ------------------------------------------------------------- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      padding: 16px;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      transform: scale(0.95);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .modal-overlay.active .modal-card {
+      transform: scale(1);
+    }
+
+    .modal-badge {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      background: #fef3c7;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 2rem;
+    }
+
+    .modal-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .modal-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    .modal-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      background: var(--bg-primary);
+      border-radius: var(--radius-sm);
+      padding: 12px 8px;
+      margin-bottom: 20px;
+    }
+
+    .modal-stat-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-stat-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .modal-stat-val {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* Canvas for Confetti */
+    #confettiCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 101;
+    }
+
+    /* Notification Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 9999px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 99;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 420px) {
+      body { padding: 10px; }
+      .brand-title { font-size: 1.2rem; }
+      .actions-bar { gap: 4px; }
+      .numpad-container { gap: 4px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Confetti Particle Canvas -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- Top App Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">9</div>
+      <span class="brand-title">Sudoku Master</span>
+    </div>
+    <div class="header-actions">
+      <!-- Dark / Light Theme Toggle -->
+      <button class="icon-btn" id="themeToggleBtn" title="Toggle Dark/Light Mode" aria-label="Toggle Theme">
+        <span id="themeIcon">🌙</span>
+      </button>
+      <!-- Pause / Resume Timer Toggle -->
+      <button class="icon-btn" id="pauseBtn" title="Pause Game" aria-label="Pause Game">
+        ⏸️
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Game Container -->
+  <main class="game-wrapper">
+    <!-- Difficulty Selector -->
+    <div class="difficulty-bar">
+      <button class="diff-btn active" data-difficulty="easy">Easy</button>
+      <button class="diff-btn" data-difficulty="medium">Medium</button>
+      <button class="diff-btn" data-difficulty="hard">Hard</button>
+      <button class="diff-btn" data-difficulty="expert">Expert</button>
+    </div>
+
+    <!-- Status Stats Bar -->
+    <div class="status-bar">
+      <div class="stat-group">
+        <span class="stat-label">Difficulty</span>
+        <span class="stat-value difficulty-tag" id="currentDiffDisplay">Easy</span>
+      </div>
+      <div class="stat-group" style="align-items: center;">
+        <span class="stat-label">Mistakes</span>
+        <span class="stat-value" id="mistakesDisplay">0 / 3</span>
+      </div>
+      <div class="stat-group" style="align-items: flex-end;">
+        <span class="stat-label">Time</span>
+        <span class="stat-value" id="timerDisplay">00:00</span>
+      </div>
+    </div>
+
+    <!-- 9x9 Sudoku Board Grid -->
+    <div class="board-container" id="sudokuBoard" role="grid" aria-label="Sudoku Board"></div>
+
+    <!-- Quick In-Game Actions -->
+    <div class="actions-bar">
+      <button class="action-btn" id="undoBtn" title="Undo last move (Ctrl+Z)">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a5 5 0 015 5v2M3 10l6-6M3 10l6 6"/>
+        </svg>
+        <span>Undo</span>
+      </button>
+      <button class="action-btn" id="eraseBtn" title="Erase current cell (Delete/Backspace)">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        <span>Erase</span>
+      </button>
+      <button class="action-btn" id="pencilBtn" title="Toggle Pencil / Notes (N)">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+        </svg>
+        <span>Pencil OFF</span>
+      </button>
+      <button class="action-btn" id="hintBtn" title="Reveal correct number for selected cell">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+        <span>Hint</span>
+      </button>
+    </div>
+
+    <!-- Virtual On-screen Number Pad -->
+    <div class="numpad-container" id="numpad">
+      <!-- 1-9 buttons rendered dynamically -->
+    </div>
+
+    <!-- Primary Control Buttons -->
+    <div class="primary-controls">
+      <button class="btn-main btn-secondary" id="checkBtn">
+        <span>✓ Check Solution</span>
+      </button>
+      <button class="btn-main btn-primary" id="newGameBtn">
+        <span>+ New Game</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- Victory Dialog Modal -->
+  <div class="modal-overlay" id="victoryModal">
+    <div class="modal-card">
+      <div class="modal-badge">🏆</div>
+      <h2 class="modal-title">Well Done!</h2>
+      <p class="modal-desc">You successfully completed the Sudoku puzzle!</p>
+      <div class="modal-stats">
+        <div class="modal-stat-item">
+          <span class="modal-stat-label">Difficulty</span>
+          <span class="modal-stat-val" id="winDiff">-</span>
+        </div>
+        <div class="modal-stat-item">
+          <span class="modal-stat-label">Time</span>
+          <span class="modal-stat-val" id="winTime">00:00</span>
+        </div>
+        <div class="modal-stat-item">
+          <span class="modal-stat-label">Mistakes</span>
+          <span class="modal-stat-val" id="winMistakes">0</span>
+        </div>
+      </div>
+      <button class="btn-main btn-primary" id="modalPlayAgainBtn" style="width: 100%;">
+        Play Another Game
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast"></div>
+
+  <!-- -------------------------------------------------------------
+       Sudoku Engine & Application Logic (Vanilla JavaScript)
+       ------------------------------------------------------------- -->
+  <script>
+    /**
+     * Sudoku Generator and Solver Engine.
+     * Generates a completely filled valid board, then selectively removes cells
+     * based on the requested difficulty level.
+     */
+    class SudokuGenerator {
+      constructor() {
+        this.size = 9;
+        this.boxSize = 3;
+      }
+
+      /**
+       * Creates an empty 9x9 matrix filled with 0s.
+       */
+      createEmptyGrid() {
+        return Array.from({ length: 9 }, () => Array(9).fill(0));
+      }
+
+      /**
+       * Checks whether placing `num` at `(row, col)` is valid according to Sudoku rules.
+       */
+      isValid(grid, row, col, num) {
+        for (let i = 0; i < 9; i++) {
+          if (grid[row][i] === num && i !== col) return false;
+          if (grid[i][col] === num && i !== row) return false;
+        }
+
+        const startRow = Math.floor(row / 3) * 3;
+        const startCol = Math.floor(col / 3) * 3;
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) {
+            const currR = startRow + r;
+            const currC = startCol + c;
+            if (grid[currR][currC] === num && (currR !== row || currC !== col)) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+
+      /**
+       * Fills diagonal 3x3 boxes with shuffled numbers 1-9.
+       * Diagonal boxes are completely independent, speeding up valid board generation.
+       */
+      fillDiagonalBoxes(grid) {
+        for (let box = 0; box < 9; box += 3) {
+          const numbers = this.shuffleArray([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+          let idx = 0;
+          for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 3; c++) {
+              grid[box + r][box + c] = numbers[idx++];
+            }
+          }
+        }
+      }
+
+      /**
+       * Shuffles an array randomly using Fisher-Yates algorithm.
+       */
+      shuffleArray(arr) {
+        const copy = [...arr];
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+
+      /**
+       * Recursive backtracking solver with randomized digit selection.
+       */
+      solveRandomized(grid) {
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            if (grid[r][c] === 0) {
+              const digits = this.shuffleArray([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+              for (const num of digits) {
+                if (this.isValid(grid, r, c, num)) {
+                  grid[r][c] = num;
+                  if (this.solveRandomized(grid)) return true;
+                  grid[r][c] = 0;
+                }
+              }
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+
+      /**
+       * Deterministic solver used for counting solutions or validation.
+       */
+      solve(grid) {
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            if (grid[r][c] === 0) {
+              for (let num = 1; num <= 9; num++) {
+                if (this.isValid(grid, r, c, num)) {
+                  grid[r][c] = num;
+                  if (this.solve(grid)) return true;
+                  grid[r][c] = 0;
+                }
+              }
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+
+      /**
+       * Generates a complete valid solved board.
+       */
+      generateSolution() {
+        const grid = this.createEmptyGrid();
+        this.fillDiagonalBoxes(grid);
+        this.solveRandomized(grid);
+        return grid;
+      }
+
+      /**
+       * Generates a puzzle and its solution based on difficulty.
+       * @param {string} difficulty - 'easy', 'medium', 'hard', or 'expert'
+       */
+      generatePuzzle(difficulty = 'easy') {
+        const solution = this.generateSolution();
+        const puzzle = solution.map(row => [...row]);
+
+        // Define number of clues to remove based on difficulty
+        const cluesToRemoveMap = {
+          easy: 36,     // 45 clues remain
+          medium: 46,   // 35 clues remain
+          hard: 52,     // 29 clues remain
+          expert: 56    // 25 clues remain
+        };
+
+        const targetRemovals = cluesToRemoveMap[difficulty] || 36;
+        let removed = 0;
+        const positions = [];
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            positions.push([r, c]);
+          }
+        }
+        const shuffledPositions = this.shuffleArray(positions);
+
+        for (const [r, c] of shuffledPositions) {
+          if (removed >= targetRemovals) break;
+          puzzle[r][c] = 0;
+          removed++;
+        }
+
+        return { puzzle, solution };
+      }
+    }
+
+    /**
+     * Confetti Particle Animation for Victory Celebration
+     */
+    class ConfettiManager {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.particles = [];
+        this.animId = null;
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+      }
+
+      resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+      }
+
+      start() {
+        this.particles = [];
+        const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#ef4444'];
+        for (let i = 0; i < 120; i++) {
+          this.particles.push({
+            x: Math.random() * this.canvas.width,
+            y: Math.random() * this.canvas.height - this.canvas.height,
+            size: Math.random() * 8 + 4,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            speedY: Math.random() * 3 + 2,
+            speedX: Math.random() * 2 - 1,
+            rotation: Math.random() * 360,
+            rotSpeed: Math.random() * 4 - 2
+          });
+        }
+
+        if (this.animId) cancelAnimationFrame(this.animId);
+        this.update();
+      }
+
+      update() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        let active = false;
+
+        for (const p of this.particles) {
+          p.y += p.speedY;
+          p.x += p.speedX;
+          p.rotation += p.rotSpeed;
+
+          if (p.y < this.canvas.height) active = true;
+
+          this.ctx.save();
+          this.ctx.translate(p.x, p.y);
+          this.ctx.rotate((p.rotation * Math.PI) / 180);
+          this.ctx.fillStyle = p.color;
+          this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+          this.ctx.restore();
+        }
+
+        if (active) {
+          this.animId = requestAnimationFrame(() => this.update());
+        } else {
+          this.stop();
+        }
+      }
+
+      stop() {
+        if (this.animId) {
+          cancelAnimationFrame(this.animId);
+          this.animId = null;
+        }
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      }
+    }
+
+    /**
+     * Main Sudoku Game Controller
+     */
+    class SudokuGame {
+      constructor() {
+        this.generator = new SudokuGenerator();
+        this.confetti = new ConfettiManager(document.getElementById('confettiCanvas'));
+
+        // Game State
+        this.difficulty = 'easy';
+        this.initialBoard = [];
+        this.currentBoard = [];
+        this.solutionBoard = [];
+        this.notes = Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => new Set()));
+        this.selectedCell = null; // { row, col }
+        this.pencilMode = false;
+        this.history = [];
+        this.mistakes = 0;
+        this.maxMistakes = 3;
+        this.timerSeconds = 0;
+        this.timerInterval = null;
+        this.isPaused = false;
+        this.isGameOver = false;
+
+        // DOM Elements
+        this.boardEl = document.getElementById('sudokuBoard');
+        this.numpadEl = document.getElementById('numpad');
+        this.timerDisplay = document.getElementById('timerDisplay');
+        this.mistakesDisplay = document.getElementById('mistakesDisplay');
+        this.currentDiffDisplay = document.getElementById('currentDiffDisplay');
+        this.pencilBtn = document.getElementById('pencilBtn');
+        this.undoBtn = document.getElementById('undoBtn');
+        this.eraseBtn = document.getElementById('eraseBtn');
+        this.hintBtn = document.getElementById('hintBtn');
+        this.newGameBtn = document.getElementById('newGameBtn');
+        this.checkBtn = document.getElementById('checkBtn');
+        this.pauseBtn = document.getElementById('pauseBtn');
+        this.themeToggleBtn = document.getElementById('themeToggleBtn');
+        this.themeIcon = document.getElementById('themeIcon');
+        this.victoryModal = document.getElementById('victoryModal');
+        this.modalPlayAgainBtn = document.getElementById('modalPlayAgainBtn');
+        this.toastEl = document.getElementById('toast');
+
+        // Initialize App
+        this.initTheme();
+        this.initEventListeners();
+        this.initNumpad();
+        this.startNewGame(this.difficulty);
+      }
+
+      /* -----------------------------------------------------------
+         Theme & Display Management
+         ----------------------------------------------------------- */
+      initTheme() {
+        const savedTheme = localStorage.getItem('sudoku-theme') || 
+          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        this.applyTheme(savedTheme);
+      }
+
+      applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        this.themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        localStorage.setItem('sudoku-theme', theme);
+      }
+
+      toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme') || 'light';
+        const next = current === 'dark' ? 'light' : 'dark';
+        this.applyTheme(next);
+      }
+
+      showToast(message, duration = 2400) {
+        this.toastEl.textContent = message;
+        this.toastEl.classList.add('show');
+        clearTimeout(this.toastTimeout);
+        this.toastTimeout = setTimeout(() => {
+          this.toastEl.classList.remove('show');
+        }, duration);
+      }
+
+      /* -----------------------------------------------------------
+         Timer Management
+         ----------------------------------------------------------- */
+      startTimer() {
+        this.stopTimer();
+        this.timerInterval = setInterval(() => {
+          if (!this.isPaused && !this.isGameOver) {
+            this.timerSeconds++;
+            this.updateTimerDisplay();
+          }
+        }, 1000);
+      }
+
+      stopTimer() {
+        if (this.timerInterval) {
+          clearInterval(this.timerInterval);
+          this.timerInterval = null;
+        }
+      }
+
+      resetTimer() {
+        this.stopTimer();
+        this.timerSeconds = 0;
+        this.updateTimerDisplay();
+      }
+
+      updateTimerDisplay() {
+        const mins = String(Math.floor(this.timerSeconds / 60)).padStart(2, '0');
+        const secs = String(this.timerSeconds % 60).padStart(2, '0');
+        this.timerDisplay.textContent = `${mins}:${secs}`;
+      }
+
+      togglePause() {
+        if (this.isGameOver) return;
+        this.isPaused = !this.isPaused;
+        this.pauseBtn.textContent = this.isPaused ? '▶️' : '⏸️';
+        if (this.isPaused) {
+          this.boardEl.style.filter = 'blur(8px)';
+          this.showToast('Game Paused');
+        } else {
+          this.boardEl.style.filter = 'none';
+          this.showToast('Game Resumed');
+        }
+      }
+
+      /* -----------------------------------------------------------
+         Game Lifecycle
+         ----------------------------------------------------------- */
+      startNewGame(difficulty = this.difficulty) {
+        this.difficulty = difficulty;
+        this.isGameOver = false;
+        this.isPaused = false;
+        this.pauseBtn.textContent = '⏸️';
+        this.boardEl.style.filter = 'none';
+        this.victoryModal.classList.remove('active');
+        this.confetti.stop();
+
+        // Update UI status tags
+        this.currentDiffDisplay.textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+        document.querySelectorAll('.diff-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.difficulty === difficulty);
+        });
+
+        // Reset game stats
+        this.mistakes = 0;
+        this.updateMistakesDisplay();
+        this.resetTimer();
+        this.startTimer();
+        this.history = [];
+        this.selectedCell = null;
+        this.notes = Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => new Set()));
+
+        // Generate puzzle & solution
+        const generated = this.generator.generatePuzzle(difficulty);
+        this.solutionBoard = generated.solution;
+        this.initialBoard = generated.puzzle.map(r => [...r]);
+        this.currentBoard = generated.puzzle.map(r => [...r]);
+
+        // Render fresh board
+        this.renderBoard();
+        this.updateNumpadBadges();
+      }
+
+      updateMistakesDisplay() {
+        this.mistakesDisplay.textContent = `${this.mistakes} / ${this.maxMistakes}`;
+      }
+
+      /* -----------------------------------------------------------
+         Board Rendering & Cell Elements
+         ----------------------------------------------------------- */
+      renderBoard() {
+        this.boardEl.innerHTML = '';
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.dataset.row = r;
+            cell.dataset.col = c;
+            cell.setAttribute('tabindex', '0');
+
+            const isFixed = this.initialBoard[r][c] !== 0;
+            const value = this.currentBoard[r][c];
+
+            if (isFixed) {
+              cell.classList.add('given');
+              cell.textContent = value;
+            } else if (value !== 0) {
+              cell.classList.add('user-filled');
+              cell.textContent = value;
+            } else {
+              // Render notes if present
+              this.renderCellNotes(cell, r, c);
+            }
+
+            // Cell click selection
+            cell.addEventListener('click', () => this.selectCell(r, c));
+
+            this.boardEl.appendChild(cell);
+          }
+        }
+      }
+
+      renderCellNotes(cellEl, r, c) {
+        const cellNotes = this.notes[r][c];
+        if (!cellNotes || cellNotes.size === 0) {
+          cellEl.textContent = '';
+          return;
+        }
+
+        cellEl.textContent = '';
+        const notesGrid = document.createElement('div');
+        notesGrid.className = 'notes-grid';
+        for (let num = 1; num <= 9; num++) {
+          const item = document.createElement('div');
+          item.className = 'note-item';
+          item.textContent = cellNotes.has(num) ? num : '';
+          notesGrid.appendChild(item);
+        }
+        cellEl.appendChild(notesGrid);
+      }
+
+      selectCell(row, col) {
+        if (this.isPaused || this.isGameOver) return;
+        this.selectedCell = { row, col };
+        this.updateCellHighlights();
+      }
+
+      updateCellHighlights() {
+        const cells = this.boardEl.querySelectorAll('.cell');
+        if (!this.selectedCell) {
+          cells.forEach(c => c.classList.remove('selected', 'highlighted', 'same-number'));
+          return;
+        }
+
+        const { row, col } = this.selectedCell;
+        const selectedVal = this.currentBoard[row][col];
+        const startR = Math.floor(row / 3) * 3;
+        const startC = Math.floor(col / 3) * 3;
+
+        cells.forEach(cellEl => {
+          const r = parseInt(cellEl.dataset.row, 10);
+          const c = parseInt(cellEl.dataset.col, 10);
+          const val = this.currentBoard[r][c];
+
+          cellEl.classList.remove('selected', 'highlighted', 'same-number');
+
+          // Highlight matching number everywhere on the board
+          if (selectedVal !== 0 && val === selectedVal) {
+            cellEl.classList.add('same-number');
+          }
+
+          // Highlight row, column, and 3x3 block
+          if (r === row || c === col || (r >= startR && r < startR + 3 && c >= startC && c < startC + 3)) {
+            cellEl.classList.add('highlighted');
+          }
+
+          // Exact selected cell
+          if (r === row && c === col) {
+            cellEl.classList.add('selected');
+          }
+        });
+      }
+
+      /* -----------------------------------------------------------
+         Number Input & Board Mutation
+         ----------------------------------------------------------- */
+      handleNumberInput(num) {
+        if (this.isPaused || this.isGameOver || !this.selectedCell) return;
+        const { row, col } = this.selectedCell;
+
+        // Given numbers cannot be edited
+        if (this.initialBoard[row][col] !== 0) return;
+
+        if (this.pencilMode) {
+          // Toggle note for selected cell
+          const cellNotes = this.notes[row][col];
+          const prevNotes = new Set(cellNotes);
+          if (cellNotes.has(num)) {
+            cellNotes.delete(num);
+          } else {
+            cellNotes.add(num);
+          }
+          this.history.push({
+            type: 'note',
+            row,
+            col,
+            prevNotes,
+            newNotes: new Set(cellNotes)
+          });
+          const cellEl = this.getCellElement(row, col);
+          this.renderCellNotes(cellEl, row, col);
+          return;
+        }
+
+        // Standard number placement
+        const prevValue = this.currentBoard[row][col];
+        if (prevValue === num) return; // No change
+
+        const isCorrect = this.solutionBoard[row][col] === num;
+
+        // Save move to history for undo
+        this.history.push({
+          type: 'value',
+          row,
+          col,
+          prevValue,
+          newValue: num,
+          prevNotes: new Set(this.notes[row][col])
+        });
+
+        // Set value and clear notes for this cell
+        this.currentBoard[row][col] = num;
+        this.notes[row][col].clear();
+
+        const cellEl = this.getCellElement(row, col);
+        cellEl.textContent = num;
+        cellEl.classList.remove('conflict');
+        cellEl.classList.add('user-filled');
+
+        // Check if value is wrong according to solution
+        if (!isCorrect) {
+          cellEl.classList.add('conflict');
+          this.mistakes++;
+          this.updateMistakesDisplay();
+          this.showToast(`Incorrect number placed (${this.mistakes}/${this.maxMistakes})`);
+
+          if (this.mistakes >= this.maxMistakes) {
+            this.gameOverLose();
+            return;
+          }
+        } else {
+          // If valid, auto-remove this note from the same row, column, and box
+          this.removeCandidateNotes(row, col, num);
+        }
+
+        this.updateCellHighlights();
+        this.updateNumpadBadges();
+        this.checkGameCompletion();
+      }
+
+      removeCandidateNotes(row, col, num) {
+        const startR = Math.floor(row / 3) * 3;
+        const startC = Math.floor(col / 3) * 3;
+
+        for (let i = 0; i < 9; i++) {
+          this.notes[row][i].delete(num);
+          this.notes[i][col].delete(num);
+        }
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) {
+            this.notes[startR + r][startC + c].delete(num);
+          }
+        }
+
+        // Re-render affected cells that are empty
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            if (this.currentBoard[r][c] === 0) {
+              const el = this.getCellElement(r, c);
+              this.renderCellNotes(el, r, c);
+            }
+          }
+        }
+      }
+
+      eraseCurrentCell() {
+        if (this.isPaused || this.isGameOver || !this.selectedCell) return;
+        const { row, col } = this.selectedCell;
+
+        if (this.initialBoard[row][col] !== 0) return;
+
+        const prevValue = this.currentBoard[row][col];
+        const prevNotes = new Set(this.notes[row][col]);
+
+        if (prevValue === 0 && prevNotes.size === 0) return;
+
+        this.history.push({
+          type: 'erase',
+          row,
+          col,
+          prevValue,
+          newValue: 0,
+          prevNotes
+        });
+
+        this.currentBoard[row][col] = 0;
+        this.notes[row][col].clear();
+
+        const cellEl = this.getCellElement(row, col);
+        cellEl.textContent = '';
+        cellEl.classList.remove('conflict', 'user-filled');
+
+        this.updateCellHighlights();
+        this.updateNumpadBadges();
+      }
+
+      undo() {
+        if (this.isPaused || this.isGameOver || this.history.length === 0) return;
+        const lastAction = this.history.pop();
+        const { row, col } = lastAction;
+        const cellEl = this.getCellElement(row, col);
+
+        if (lastAction.type === 'value' || lastAction.type === 'erase') {
+          this.currentBoard[row][col] = lastAction.prevValue;
+          this.notes[row][col] = new Set(lastAction.prevNotes);
+
+          if (lastAction.prevValue !== 0) {
+            cellEl.textContent = lastAction.prevValue;
+            cellEl.classList.add('user-filled');
+            cellEl.classList.remove('conflict');
+          } else {
+            cellEl.classList.remove('user-filled', 'conflict');
+            this.renderCellNotes(cellEl, row, col);
+          }
+        } else if (lastAction.type === 'note') {
+          this.notes[row][col] = new Set(lastAction.prevNotes);
+          this.renderCellNotes(cellEl, row, col);
+        }
+
+        this.selectCell(row, col);
+        this.updateNumpadBadges();
+      }
+
+      provideHint() {
+        if (this.isPaused || this.isGameOver) return;
+
+        // If a cell is currently selected and not yet solved correctly
+        let targetCell = null;
+        if (this.selectedCell) {
+          const { row, col } = this.selectedCell;
+          if (this.initialBoard[row][col] === 0 && this.currentBoard[row][col] !== this.solutionBoard[row][col]) {
+            targetCell = { row, col };
+          }
+        }
+
+        // Otherwise find any random empty or incorrect cell
+        if (!targetCell) {
+          const candidates = [];
+          for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+              if (this.initialBoard[r][c] === 0 && this.currentBoard[r][c] !== this.solutionBoard[r][c]) {
+                candidates.push({ row: r, col: c });
+              }
+            }
+          }
+          if (candidates.length === 0) {
+            this.showToast('All cells are already correctly filled!');
+            return;
+          }
+          targetCell = candidates[Math.floor(Math.random() * candidates.length)];
+        }
+
+        const { row, col } = targetCell;
+        const correctVal = this.solutionBoard[row][col];
+
+        this.currentBoard[row][col] = correctVal;
+        this.notes[row][col].clear();
+
+        const cellEl = this.getCellElement(row, col);
+        cellEl.textContent = correctVal;
+        cellEl.classList.remove('conflict');
+        cellEl.classList.add('user-filled');
+
+        this.removeCandidateNotes(row, col, correctVal);
+        this.selectCell(row, col);
+        this.updateNumpadBadges();
+        this.showToast(`Hint added at Row ${row + 1}, Col ${col + 1}`);
+        this.checkGameCompletion();
+      }
+
+      /* -----------------------------------------------------------
+         Validation & Completion
+         ----------------------------------------------------------- */
+      checkSolution() {
+        if (this.isPaused || this.isGameOver) return;
+        let errorsFound = 0;
+        let emptyFound = 0;
+
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            const val = this.currentBoard[r][c];
+            const cellEl = this.getCellElement(r, c);
+            if (val === 0) {
+              emptyFound++;
+            } else if (val !== this.solutionBoard[r][c]) {
+              cellEl.classList.add('conflict');
+              errorsFound++;
+            } else {
+              cellEl.classList.remove('conflict');
+            }
+          }
+        }
+
+        if (errorsFound > 0) {
+          this.showToast(`Found ${errorsFound} incorrect cell${errorsFound > 1 ? 's' : ''}!`);
+        } else if (emptyFound > 0) {
+          this.showToast(`All placed numbers are correct! ${emptyFound} cells left.`);
+        } else {
+          this.triggerVictory();
+        }
+      }
+
+      checkGameCompletion() {
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            if (this.currentBoard[r][c] !== this.solutionBoard[r][c]) {
+              return;
+            }
+          }
+        }
+        this.triggerVictory();
+      }
+
+      triggerVictory() {
+        this.isGameOver = true;
+        this.stopTimer();
+        this.confetti.start();
+
+        // Populate Victory Modal
+        document.getElementById('winDiff').textContent = 
+          this.difficulty.charAt(0).toUpperCase() + this.difficulty.slice(1);
+        document.getElementById('winTime').textContent = this.timerDisplay.textContent;
+        document.getElementById('winMistakes').textContent = `${this.mistakes} / ${this.maxMistakes}`;
+
+        this.victoryModal.classList.add('active');
+      }
+
+      gameOverLose() {
+        this.isGameOver = true;
+        this.stopTimer();
+        this.showToast('Game Over! You reached 3 mistakes.', 3500);
+      }
+
+      /* -----------------------------------------------------------
+         Helpers & UI Sync
+         ----------------------------------------------------------- */
+      getCellElement(row, col) {
+        return this.boardEl.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+      }
+
+      initNumpad() {
+        this.numpadEl.innerHTML = '';
+        for (let num = 1; num <= 9; num++) {
+          const btn = document.createElement('button');
+          btn.className = 'numpad-btn';
+          btn.dataset.num = num;
+          btn.innerHTML = `<span>${num}</span><span class="remaining-count" id="count-${num}">9</span>`;
+          btn.addEventListener('click', () => this.handleNumberInput(num));
+          this.numpadEl.appendChild(btn);
+        }
+      }
+
+      updateNumpadBadges() {
+        const counts = Array(10).fill(0);
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            const val = this.currentBoard[r][c];
+            if (val >= 1 && val <= 9) counts[val]++;
+          }
+        }
+
+        for (let num = 1; num <= 9; num++) {
+          const remaining = 9 - counts[num];
+          const badge = document.getElementById(`count-${num}`);
+          const btn = this.numpadEl.querySelector(`[data-num="${num}"]`);
+          if (badge && btn) {
+            badge.textContent = remaining > 0 ? remaining : '✓';
+            btn.classList.toggle('completed', remaining <= 0);
+          }
+        }
+      }
+
+      /* -----------------------------------------------------------
+         Keyboard & Event Listeners
+         ----------------------------------------------------------- */
+      initEventListeners() {
+        // Theme toggle
+        this.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
+
+        // Pause toggle
+        this.pauseBtn.addEventListener('click', () => this.togglePause());
+
+        // Pencil Mode toggle
+        this.pencilBtn.addEventListener('click', () => {
+          this.pencilMode = !this.pencilMode;
+          this.pencilBtn.classList.toggle('active', this.pencilMode);
+          this.pencilBtn.querySelector('span').textContent = this.pencilMode ? 'Pencil ON' : 'Pencil OFF';
+          this.showToast(this.pencilMode ? 'Pencil / Notes Mode Enabled' : 'Pencil / Notes Mode Disabled');
+        });
+
+        // Undo & Erase & Hint
+        this.undoBtn.addEventListener('click', () => this.undo());
+        this.eraseBtn.addEventListener('click', () => this.eraseCurrentCell());
+        this.hintBtn.addEventListener('click', () => this.provideHint());
+
+        // Difficulty selection buttons
+        document.querySelectorAll('.diff-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const diff = e.target.dataset.difficulty;
+            if (diff !== this.difficulty || this.isGameOver) {
+              this.startNewGame(diff);
+            }
+          });
+        });
+
+        // New Game & Check buttons
+        this.newGameBtn.addEventListener('click', () => this.startNewGame(this.difficulty));
+        this.checkBtn.addEventListener('click', () => this.checkSolution());
+        this.modalPlayAgainBtn.addEventListener('click', () => this.startNewGame(this.difficulty));
+
+        // Global Keyboard Navigation & Inputs
+        window.addEventListener('keydown', (e) => {
+          if (this.isPaused || this.isGameOver) return;
+
+          // Number keys 1-9
+          if (e.key >= '1' && e.key <= '9') {
+            this.handleNumberInput(parseInt(e.key, 10));
+            return;
+          }
+
+          // Erase (Backspace or Delete)
+          if (e.key === 'Backspace' || e.key === 'Delete') {
+            e.preventDefault();
+            this.eraseCurrentCell();
+            return;
+          }
+
+          // Undo (Ctrl+Z or Cmd+Z)
+          if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+            e.preventDefault();
+            this.undo();
+            return;
+          }
+
+          // Toggle Pencil Mode (Key 'N' or 'n')
+          if (e.key.toLowerCase() === 'n') {
+            this.pencilBtn.click();
+            return;
+          }
+
+          // Arrow Key Board Navigation
+          if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) {
+            e.preventDefault();
+            this.handleArrowNavigation(e.key);
+          }
+        });
+      }
+
+      handleArrowNavigation(key) {
+        let r = this.selectedCell ? this.selectedCell.row : 0;
+        let c = this.selectedCell ? this.selectedCell.col : 0;
+
+        if (key === 'ArrowUp' || key === 'w') r = Math.max(0, r - 1);
+        if (key === 'ArrowDown' || key === 's') r = Math.min(8, r + 1);
+        if (key === 'ArrowLeft' || key === 'a') c = Math.max(0, c - 1);
+        if (key === 'ArrowRight' || key === 'd') c = Math.min(8, c + 1);
+
+        this.selectCell(r, c);
+      }
+    }
+
+    // Initialize the Sudoku Game once DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      new SudokuGame();
+    });
+  </script>
+</body>
+</html>
