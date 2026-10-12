@@ -2,6 +2,8 @@
 
 A modern, responsive, web-based Sudoku game built with vanilla HTML5, CSS3, and JavaScript. Zero dependencies, zero build steps, and 100% client-side.
 
+🔗 **Live Demo:** [https://yossef-primary.github.io/sudoku-game/](https://yossef-primary.github.io/sudoku-game/)
+
 ---
 
 ## ✨ Features
