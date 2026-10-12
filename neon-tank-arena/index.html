@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neon Tank Arena | Cyber Warfare</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Plus+Jakarta+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    /* -------------------------------------------------------------
+       Root Theme & Cyberpunk Palette
+       ------------------------------------------------------------- */
+    :root {
+      --bg-dark: #07090e;
+      --bg-panel: rgba(13, 17, 27, 0.82);
+      --border-panel: rgba(56, 189, 248, 0.25);
+      --neon-cyan: #00f0ff;
+      --neon-magenta: #ff007f;
+      --neon-amber: #ffaa00;
+      --neon-green: #00ff88;
+      --neon-purple: #9d4edd;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* -------------------------------------------------------------
+       Game Canvas & Viewport Wrapper
+       ------------------------------------------------------------- */
+    #gameContainer {
+      position: relative;
+      width: 1000px;
+      height: 650px;
+      max-width: 98vw;
+      max-height: 92vh;
+      box-shadow: 0 0 35px rgba(0, 240, 255, 0.2), 0 0 80px rgba(0, 0, 0, 0.8);
+      border: 2px solid var(--border-panel);
+      border-radius: 12px;
+      overflow: hidden;
+      background: radial-gradient(circle at center, #0f172a 0%, #030712 100%);
+    }
+
+    canvas#arenaCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+
+    /* -------------------------------------------------------------
+       Cyber HUD Overlays (HTML / CSS atop Canvas)
+       ------------------------------------------------------------- */
+    .hud-top {
+      position: absolute;
+      top: 14px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .tank-status-card {
+      background: var(--bg-panel);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-panel);
+      border-radius: 8px;
+      padding: 10px 14px;
+      min-width: 210px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+
+    .status-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .tank-name {
+      font-family: 'Orbitron', monospace;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .tank-name.player {
+      color: var(--neon-cyan);
+      text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+    }
+
+    .tank-name.ai {
+      color: var(--neon-magenta);
+      text-shadow: 0 0 8px rgba(255, 0, 127, 0.5);
+    }
+
+    .score-badge {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.95rem;
+      font-weight: 900;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .bar-group {
+      margin-bottom: 4px;
+    }
+
+    .bar-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+
+    .meter-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .meter-fill {
+      height: 100%;
+      transition: width 0.15s ease-out;
+    }
+
+    .meter-fill.hp-player {
+      background: linear-gradient(90deg, #00f0ff, #38bdf8);
+      box-shadow: 0 0 8px var(--neon-cyan);
+    }
+
+    .meter-fill.hp-ai {
+      background: linear-gradient(90deg, #ff007f, #f43f5e);
+      box-shadow: 0 0 8px var(--neon-magenta);
+    }
+
+    .meter-fill.energy {
+      background: linear-gradient(90deg, #ffaa00, #f59e0b);
+    }
+
+    /* Round & Center Match Display */
+    .round-display {
+      background: var(--bg-panel);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-panel);
+      border-radius: 8px;
+      padding: 8px 18px;
+      text-align: center;
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .match-round-title {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .match-score {
+      font-size: 1.25rem;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      color: #ffffff;
+    }
+
+    /* -------------------------------------------------------------
+       Bottom Telemetry & Oscilloscope Dock
+       ------------------------------------------------------------- */
+    .hud-bottom {
+      position: absolute;
+      bottom: 12px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .telemetry-card {
+      background: var(--bg-panel);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-panel);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+
+    .telemetry-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--neon-green);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .telemetry-title::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--neon-green);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--neon-green);
+      display: inline-block;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    canvas#oscilloscopeCanvas,
+    canvas#telemetryChartCanvas {
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+    }
+
+    .controls-hint {
+      background: var(--bg-panel);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-panel);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .controls-hint span strong {
+      color: var(--text-main);
+    }
+
+    /* -------------------------------------------------------------
+       Modal Overlays (Start & Game Over)
+       ------------------------------------------------------------- */
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(7, 9, 14, 0.88);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      opacity: 1;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .modal-content {
+      background: rgba(15, 23, 42, 0.95);
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 35px rgba(0, 240, 255, 0.35);
+      border-radius: 14px;
+      padding: 32px;
+      text-align: center;
+      max-width: 480px;
+      width: 90%;
+    }
+
+    .modal-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--neon-cyan);
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+      text-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+    }
+
+    .modal-subtitle {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .feature-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+
+    .feature-item {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+    }
+
+    .feature-item strong {
+      color: var(--neon-green);
+      display: block;
+      margin-bottom: 2px;
+      font-family: 'Orbitron', monospace;
+    }
+
+    .btn-cyber {
+      background: linear-gradient(135deg, var(--neon-cyan), #0284c7);
+      color: #030712;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-family: 'Orbitron', monospace;
+      font-size: 1rem;
+      font-weight: 900;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+      transition: all 0.15s ease;
+    }
+
+    .btn-cyber:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.8);
+      background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="gameContainer">
+    <!-- Main Game Canvas -->
+    <canvas id="arenaCanvas" width="1000" height="650"></canvas>
+
+    <!-- Top HUD: Tank Stats & Round Counter -->
+    <div class="hud-top">
+      <!-- Player Status -->
+      <div class="tank-status-card">
+        <div class="status-header">
+          <span class="tank-name player">YOU (CYBER-VANGUARD)</span>
+          <span class="score-badge" id="playerScoreBadge">0</span>
+        </div>
+        <div class="bar-group">
+          <div class="bar-label"><span>Hull Integrity</span><span id="playerHpText">100%</span></div>
+          <div class="meter-track">
+            <div class="meter-fill hp-player" id="playerHpBar" style="width: 100%;"></div>
+          </div>
+        </div>
+        <div class="bar-group">
+          <div class="bar-label"><span>Boost Energy</span><span id="playerEnergyText">100%</span></div>
+          <div class="meter-track">
+            <div class="meter-fill energy" id="playerEnergyBar" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Match Counter -->
+      <div class="round-display">
+        <div class="match-round-title">ARENA DUEL</div>
+        <div class="match-score" id="matchScoreDisplay">0 : 0</div>
+      </div>
+
+      <!-- AI Opponent Status -->
+      <div class="tank-status-card">
+        <div class="status-header">
+          <span class="tank-name ai">AI (NEXUS-PRIME)</span>
+          <span class="score-badge" id="aiScoreBadge">0</span>
+        </div>
+        <div class="bar-group">
+          <div class="bar-label"><span>Hull Integrity</span><span id="aiHpText">100%</span></div>
+          <div class="meter-track">
+            <div class="meter-fill hp-ai" id="aiHpBar" style="width: 100%;"></div>
+          </div>
+        </div>
+        <div class="bar-group">
+          <div class="bar-label"><span>AI Combat Mode</span><span id="aiStateText" style="color: var(--neon-magenta)">HUNTING</span></div>
+          <div class="meter-track">
+            <div class="meter-fill" id="aiThreatBar" style="width: 80%; background: var(--neon-magenta)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom HUD: Real-Time Oscilloscope & Live Telemetry Chart -->
+    <div class="hud-bottom">
+      <!-- Real-Time Audio Synthesizer Oscilloscope -->
+      <div class="telemetry-card">
+        <div class="telemetry-title">AUDIO WAVEFORM SYNTH</div>
+        <canvas id="oscilloscopeCanvas" width="160" height="50"></canvas>
+      </div>
+
+      <!-- Controls Hint -->
+      <div class="controls-hint">
+        <span><strong>WASD / Arrows:</strong> Drive</span>
+        <span><strong>Mouse:</strong> Aim & Fire</span>
+        <span><strong>Shift / Space:</strong> Nitro Boost</span>
+        <span><strong>M:</strong> Mute Audio</span>
+      </div>
+
+      <!-- Live Speed & Distance Telemetry Chart -->
+      <div class="telemetry-card">
+        <div class="telemetry-title">LIVE TELEMETRY CHART</div>
+        <canvas id="telemetryChartCanvas" width="180" height="50"></canvas>
+      </div>
+    </div>
+
+    <!-- Start / Victory Modal Overlay -->
+    <div class="modal-overlay" id="gameModal">
+      <div class="modal-content">
+        <h1 class="modal-title" id="modalTitle">NEON TANK ARENA</h1>
+        <p class="modal-subtitle" id="modalSubtitle">
+          Engage in cybernetic tank warfare against an intelligent neural opponent with ricochet ballistics, procedural synthesized audio, and real-time telemetry.
+        </p>
+
+        <div class="feature-list">
+          <div class="feature-item">
+            <strong>💥 Ricochet Physics</strong>
+            Shells bank off walls with specular angle reflections.
+          </div>
+          <div class="feature-item">
+            <strong>🤖 Predictive AI</strong>
+            Casts LOS rays, calculates bank shots & leads targets.
+          </div>
+          <div class="feature-item">
+            <strong>🔊 100% Web Audio</strong>
+            Procedural synth lasers, filtered noise explosions.
+          </div>
+          <div class="feature-item">
+            <strong>📈 Live Telemetry</strong>
+            Real-time oscilloscope & velocity tracking chart.
+          </div>
+        </div>
+
+        <button class="btn-cyber" id="startBtn">ENGAGE COMBAT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- -------------------------------------------------------------
+       Core Game Implementation (Pure Vanilla JavaScript)
+       ------------------------------------------------------------- -->
+  <script>
+    /**
+     * 2D Vector Math Utility
+     */
+    class Vec2 {
+      constructor(x = 0, y = 0) {
+        this.x = x;
+        this.y = y;
+      }
+      set(x, y) { this.x = x; this.y = y; return this; }
+      copy(v) { this.x = v.x; this.y = v.y; return this; }
+      clone() { return new Vec2(this.x, this.y); }
+      add(v) { this.x += v.x; this.y += v.y; return this; }
+      sub(v) { this.x -= v.x; this.y -= v.y; return this; }
+      scale(s) { this.x *= s; this.y *= s; return this; }
+      magSq() { return this.x * this.x + this.y * this.y; }
+      mag() { return Math.sqrt(this.magSq()); }
+      normalize() {
+        const m = this.mag();
+        if (m > 0.00001) { this.x /= m; this.y /= m; }
+        return this;
+      }
+      dot(v) { return this.x * v.x + this.y * v.y; }
+      dist(v) { return Math.hypot(this.x - v.x, this.y - v.y); }
+      reflect(normal) {
+        const d = 2 * this.dot(normal);
+        this.x -= d * normal.x;
+        this.y -= d * normal.y;
+        return this;
+      }
+      static fromAngle(rad, len = 1) {
+        return new Vec2(Math.cos(rad) * len, Math.sin(rad) * len);
+      }
+    }
+
+    /**
+     * Procedural Web Audio Engine
+     * Generates all sound effects in real-time with zero external audio assets.
+     */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.masterGain = null;
+        this.analyser = null;
+        this.isMuted = false;
+        this.engineOsc = null;
+        this.engineGain = null;
+      }
+
+      init() {
+        if (this.ctx) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioCtx();
+
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+
+        // Real-time Analyser node for Oscilloscope visualizer
+        this.analyser = this.ctx.createAnalyser();
+        this.analyser.fftSize = 256;
+
+        this.masterGain.connect(this.analyser);
+        this.analyser.connect(this.ctx.destination);
+
+        this.initEngineHum();
+      }
+
+      toggleMute() {
+        this.isMuted = !this.isMuted;
+        if (this.masterGain && this.ctx) {
+          this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.35, this.ctx.currentTime);
+        }
+        return this.isMuted;
+      }
+
+      initEngineHum() {
+        if (!this.ctx) return;
+        this.engineOsc = this.ctx.createOscillator();
+        this.engineGain = this.ctx.createGain();
+
+        this.engineOsc.type = 'triangle';
+        this.engineOsc.frequency.setValueAtTime(55, this.ctx.currentTime);
+        this.engineGain.gain.setValueAtTime(0.02, this.ctx.currentTime);
+
+        this.engineOsc.connect(this.engineGain);
+        this.engineGain.connect(this.masterGain);
+        this.engineOsc.start();
+      }
+
+      updateEnginePitch(speedRatio) {
+        if (!this.engineOsc || !this.ctx) return;
+        const targetFreq = 50 + speedRatio * 75;
+        this.engineOsc.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.05);
+        const targetVol = 0.02 + speedRatio * 0.04;
+        this.engineGain.gain.setTargetAtTime(targetVol, this.ctx.currentTime, 0.05);
+      }
+
+      playLaser(isPlayer = true) {
+        if (!this.ctx || this.isMuted) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = isPlayer ? 'sawtooth' : 'triangle';
+        const startFreq = isPlayer ? 880 : 660;
+        const endFreq = isPlayer ? 110 : 80;
+
+        osc.frequency.setValueAtTime(startFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.12);
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start(now);
+        osc.stop(now + 0.13);
+      }
+
+      playRicochet() {
+        if (!this.ctx || this.isMuted) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        const freq = 1200 + Math.random() * 800;
+        osc.frequency.setValueAtTime(freq, now);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.5, now + 0.08);
+
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start(now);
+        osc.stop(now + 0.09);
+      }
+
+      playExplosion() {
+        if (!this.ctx || this.isMuted) return;
+        const now = this.ctx.currentTime;
+        const bufferSize = this.ctx.sampleRate * 0.45;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(700, now);
+        filter.frequency.exponentialRampToValueAtTime(30, now + 0.4);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.masterGain);
+
+        noise.start(now);
+        noise.stop(now + 0.46);
+      }
+
+      playHit() {
+        if (!this.ctx || this.isMuted) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(240, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.1);
+
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start(now);
+        osc.stop(now + 0.11);
+      }
+    }
+
+    /**
+     * Obstacle / Wall Geometry for Collision and Ricochet Raycasting
+     */
+    class Obstacle {
+      constructor(x, y, w, h) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+      }
+
+      draw(ctx) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(30, 41, 59, 0.85)';
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = 'rgba(0, 240, 255, 0.5)';
+        ctx.shadowBlur = 8;
+
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+        ctx.strokeRect(this.x, this.y, this.w, this.h);
+
+        // Subtle inner diagonal cyber grid lines
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.x + this.w, this.y + this.h);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Check point inside
+      contains(px, py) {
+        return px >= this.x && px <= this.x + this.w &&
+               py >= this.y && py <= this.y + this.h;
+      }
+
+      // Segment intersection returning hit { point, normal, dist }
+      intersectSegment(p1, p2) {
+        const lines = [
+          { p1: { x: this.x, y: this.y }, p2: { x: this.x + this.w, y: this.y }, normal: new Vec2(0, -1) }, // Top
+          { p1: { x: this.x + this.w, y: this.y }, p2: { x: this.x + this.w, y: this.y + this.h }, normal: new Vec2(1, 0) }, // Right
+          { p1: { x: this.x, y: this.y + this.h }, p2: { x: this.x + this.w, y: this.y + this.h }, normal: new Vec2(0, 1) }, // Bottom
+          { p1: { x: this.x, y: this.y }, p2: { x: this.x, y: this.y + this.h }, normal: new Vec2(-1, 0) } // Left
+        ];
+
+        let closestHit = null;
+        let minT = Infinity;
+
+        for (const line of lines) {
+          const hit = lineIntersection(p1, p2, line.p1, line.p2);
+          if (hit && hit.t < minT) {
+            minT = hit.t;
+            closestHit = {
+              point: new Vec2(hit.x, hit.y),
+              normal: line.normal,
+              t: hit.t
+            };
+          }
+        }
+        return closestHit;
+      }
+    }
+
+    // Helper: 2D Line Segment Intersection
+    function lineIntersection(p1, p2, p3, p4) {
+      const denom = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
+      if (Math.abs(denom) < 0.000001) return null;
+
+      const ua = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / denom;
+      const ub = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / denom;
+
+      if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1) {
+        return {
+          x: p1.x + ua * (p2.x - p1.x),
+          y: p1.y + ua * (p2.y - p1.y),
+          t: ua
+        };
+      }
+      return null;
+    }
+
+    /**
+     * Ricochet Laser Projectile with Continuous Collision Detection (CCD)
+     */
+    class Projectile {
+      constructor(pos, vel, isPlayer, color) {
+        this.pos = pos.clone();
+        this.vel = vel.clone();
+        this.isPlayer = isPlayer;
+        this.color = color;
+        this.radius = 4;
+        this.bouncesLeft = 2; // Up to 2 wall ricochets!
+        this.alive = true;
+        this.lifeTime = 300; // max frames (~5s)
+        this.trail = [];
+      }
+
+      update(obstacles, bounds, particles, soundEngine) {
+        if (!this.alive) return;
+        this.lifeTime--;
+        if (this.lifeTime <= 0) {
+          this.alive = false;
+          return;
+        }
+
+        this.trail.push(this.pos.clone());
+        if (this.trail.length > 6) this.trail.shift();
+
+        // Calculate destination step
+        const nextPos = this.pos.clone().add(this.vel);
+
+        // Continuous Collision Detection against boundary walls
+        let hit = null;
+        let hitNormal = null;
+
+        // Check outer arena boundaries
+        if (nextPos.x - this.radius < bounds.minX) {
+          hit = new Vec2(bounds.minX + this.radius, nextPos.y);
+          hitNormal = new Vec2(1, 0);
+        } else if (nextPos.x + this.radius > bounds.maxX) {
+          hit = new Vec2(bounds.maxX - this.radius, nextPos.y);
+          hitNormal = new Vec2(-1, 0);
+        } else if (nextPos.y - this.radius < bounds.minY) {
+          hit = new Vec2(nextPos.x, bounds.minY + this.radius);
+          hitNormal = new Vec2(0, 1);
+        } else if (nextPos.y + this.radius > bounds.maxY) {
+          hit = new Vec2(nextPos.x, bounds.maxY - this.radius);
+          hitNormal = new Vec2(0, -1);
+        }
+
+        // Check internal obstacles
+        for (const obs of obstacles) {
+          const obsHit = obs.intersectSegment(this.pos, nextPos);
+          if (obsHit) {
+            hit = obsHit.point;
+            hitNormal = obsHit.normal;
+            break;
+          }
+        }
+
+        if (hit && hitNormal) {
+          if (this.bouncesLeft > 0) {
+            this.bouncesLeft--;
+            this.pos.copy(hit);
+            this.vel.reflect(hitNormal);
+            soundEngine.playRicochet();
+
+            // Spawn ricochet spark burst
+            for (let i = 0; i < 7; i++) {
+              particles.push(new Particle(hit.x, hit.y, this.color, 2.5));
+            }
+          } else {
+            this.alive = false;
+            for (let i = 0; i < 12; i++) {
+              particles.push(new Particle(hit.x, hit.y, this.color, 3.5));
+            }
+          }
+        } else {
+          this.pos.copy(nextPos);
+        }
+      }
+
+      draw(ctx) {
+        if (!this.alive) return;
+        ctx.save();
+
+        // Glowing projectile trail
+        if (this.trail.length > 1) {
+          ctx.beginPath();
+          ctx.moveTo(this.trail[0].x, this.trail[0].y);
+          for (let i = 1; i < this.trail.length; i++) {
+            ctx.lineTo(this.trail[i].x, this.trail[i].y);
+          }
+          ctx.strokeStyle = this.color;
+          ctx.lineWidth = 2;
+          ctx.globalAlpha = 0.4;
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+        }
+
+        // Projectile core with neon glow
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    /**
+     * High-Speed Particle for Spark & Explosion Visuals
+     */
+    class Particle {
+      constructor(x, y, color, speed = 3) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        const angle = Math.random() * Math.PI * 2;
+        const spd = (Math.random() * 0.8 + 0.2) * speed;
+        this.vx = Math.cos(angle) * spd;
+        this.vy = Math.sin(angle) * spd;
+        this.alpha = 1.0;
+        this.decay = Math.random() * 0.03 + 0.02;
+        this.size = Math.random() * 3 + 1.5;
+      }
+
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx *= 0.96;
+        this.vy *= 0.96;
+        this.alpha -= this.decay;
+      }
+
+      draw(ctx) {
+        if (this.alpha <= 0) return;
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = this.color;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    /**
+     * Base Tank Class (Hull, Turret, Kinematics, Energy)
+     */
+    class Tank {
+      constructor(x, y, color, isPlayer = false) {
+        this.pos = new Vec2(x, y);
+        this.vel = new Vec2(0, 0);
+        this.heading = 0; // Body rotation
+        this.turretAngle = 0; // Turret rotation
+        this.color = color;
+        this.isPlayer = isPlayer;
+
+        this.radius = 20; // Collision circle radius
+        this.maxSpeed = 3.6;
+        this.accel = 0.22;
+        this.friction = 0.92;
+        this.turnSpeed = 0.065;
+
+        this.hp = 100;
+        this.maxHp = 100;
+        this.energy = 100; // Boost energy
+        this.fireCooldown = 0;
+        this.fireRate = 18; // frames between shots (~0.3s)
+        this.isBoosting = false;
+      }
+
+      updateKinematics(obstacles, bounds) {
+        // Apply friction
+        this.vel.scale(this.friction);
+
+        // Tentative next position
+        const nextPos = this.pos.clone().add(this.vel);
+
+        // Keep inside outer arena boundaries
+        if (nextPos.x - this.radius < bounds.minX) {
+          nextPos.x = bounds.minX + this.radius;
+          this.vel.x = 0;
+        }
+        if (nextPos.x + this.radius > bounds.maxX) {
+          nextPos.x = bounds.maxX - this.radius;
+          this.vel.x = 0;
+        }
+        if (nextPos.y - this.radius < bounds.minY) {
+          nextPos.y = bounds.minY + this.radius;
+          this.vel.y = 0;
+        }
+        if (nextPos.y + this.radius > bounds.maxY) {
+          nextPos.y = bounds.maxY - this.radius;
+          this.vel.y = 0;
+        }
+
+        // Circle-Box Collision against Obstacles
+        for (const obs of obstacles) {
+          const closestX = Math.max(obs.x, Math.min(nextPos.x, obs.x + obs.w));
+          const closestY = Math.max(obs.y, Math.min(nextPos.y, obs.y + obs.h));
+          const distX = nextPos.x - closestX;
+          const distY = nextPos.y - closestY;
+          const distSq = distX * distX + distY * distY;
+
+          if (distSq < this.radius * this.radius) {
+            const dist = Math.sqrt(distSq);
+            if (dist > 0.0001) {
+              const overlap = this.radius - dist;
+              nextPos.x += (distX / dist) * overlap;
+              nextPos.y += (distY / dist) * overlap;
+            }
+          }
+        }
+
+        this.pos.copy(nextPos);
+
+        // Energy recharge
+        if (!this.isBoosting && this.energy < 100) {
+          this.energy = Math.min(100, this.energy + 0.35);
+        }
+
+        if (this.fireCooldown > 0) this.fireCooldown--;
+      }
+
+      fire(projectiles, soundEngine) {
+        if (this.fireCooldown > 0) return false;
+        this.fireCooldown = this.fireRate;
+
+        // Cannon barrel tip position
+        const barrelLen = 28;
+        const spawnPos = new Vec2(
+          this.pos.x + Math.cos(this.turretAngle) * barrelLen,
+          this.pos.y + Math.sin(this.turretAngle) * barrelLen
+        );
+
+        const bulletSpeed = 7.5;
+        const bulletVel = Vec2.fromAngle(this.turretAngle, bulletSpeed);
+
+        projectiles.push(new Projectile(spawnPos, bulletVel, this.isPlayer, this.color));
+        soundEngine.playLaser(this.isPlayer);
+
+        // Recoil kickback on tank
+        this.vel.sub(Vec2.fromAngle(this.turretAngle, 1.2));
+        return true;
+      }
+
+      draw(ctx) {
+        ctx.save();
+        ctx.translate(this.pos.x, this.pos.y);
+
+        // 1. Draw Tank Hull (Treads & Armor Body)
+        ctx.save();
+        ctx.rotate(this.heading);
+
+        // Tank Treads
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-22, -18, 44, 7); // Left tread
+        ctx.fillRect(-22, 11, 44, 7);  // Right tread
+
+        // Main Hull Body
+        ctx.fillStyle = '#0f172a';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 10;
+        ctx.fillRect(-17, -12, 34, 24);
+        ctx.strokeRect(-17, -12, 34, 24);
+        ctx.restore();
+
+        // 2. Draw Turret and Cannon
+        ctx.save();
+        ctx.rotate(this.turretAngle);
+
+        // Cannon Barrel
+        ctx.fillStyle = '#334155';
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 1.5;
+        ctx.fillRect(0, -3.5, 26, 7);
+        ctx.strokeRect(0, -3.5, 26, 7);
+
+        // Turret Center Dome
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(0, 0, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Glowing center core
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.restore();
+      }
+    }
+
+    /**
+     * Autonomous Neural AI Tank Opponent (NEXUS-PRIME)
+     * Features: Raycasting Line-of-Sight, Bank Shot Calculation, Predictive Leading, Whisker Navigation
+     */
+    class AITank extends Tank {
+      constructor(x, y) {
+        super(x, y, '#ff007f', false);
+        this.state = 'HUNTING'; // 'HUNTING', 'EVADING', 'SNIPING'
+        this.evadeTimer = 0;
+        this.optimalDistance = 280;
+      }
+
+      updateAI(player, obstacles, bounds, projectiles, soundEngine) {
+        const toPlayer = player.pos.clone().sub(this.pos);
+        const distToPlayer = toPlayer.mag();
+
+        // 1. Raycast direct Line of Sight (LOS)
+        const hasLOS = this.checkLineOfSight(player.pos, obstacles);
+
+        // 2. Check for incoming player projectiles (Threat Evasion)
+        let closestThreat = null;
+        let threatDist = Infinity;
+        for (const p of projectiles) {
+          if (p.isPlayer && p.alive) {
+            const d = p.pos.dist(this.pos);
+            if (d < 180 && d < threatDist) {
+              // Check if bullet heading towards AI
+              const toAI = this.pos.clone().sub(p.pos);
+              if (toAI.dot(p.vel) > 0) {
+                closestThreat = p;
+                threatDist = d;
+              }
+            }
+          }
+        }
+
+        // State Machine Decision
+        if (closestThreat) {
+          this.state = 'EVADING';
+          this.evadeTimer = 25;
+        } else if (this.evadeTimer > 0) {
+          this.state = 'EVADING';
+          this.evadeTimer--;
+        } else {
+          this.state = hasLOS ? 'HUNTING' : 'SNIPING';
+        }
+
+        // Navigation Behaviors
+        let moveForce = new Vec2(0, 0);
+
+        if (this.state === 'EVADING' && closestThreat) {
+          // Dodge perpendicular to incoming projectile velocity
+          const perp = new Vec2(-closestThreat.vel.y, closestThreat.vel.x).normalize();
+          moveForce.add(perp.scale(this.maxSpeed * 1.2));
+        } else {
+          // Tactical distance maintenance
+          if (distToPlayer > this.optimalDistance + 40) {
+            // Approach player
+            moveForce.add(toPlayer.clone().normalize().scale(this.maxSpeed));
+          } else if (distToPlayer < this.optimalDistance - 40) {
+            // Back away from player
+            moveForce.sub(toPlayer.clone().normalize().scale(this.maxSpeed));
+          }
+
+          // Orbit/Strafe around player
+          const strafe = new Vec2(-toPlayer.y, toPlayer.x).normalize();
+          moveForce.add(strafe.scale(this.maxSpeed * 0.8));
+        }
+
+        // Whisker Feeler Obstacle Avoidance (Avoid getting stuck on walls)
+        const whiskerAngles = [-0.6, -0.3, 0, 0.3, 0.6];
+        for (const angleOffset of whiskerAngles) {
+          const whiskerDir = Vec2.fromAngle(this.heading + angleOffset, 45);
+          const whiskerTip = this.pos.clone().add(whiskerDir);
+          for (const obs of obstacles) {
+            if (obs.contains(whiskerTip.x, whiskerTip.y)) {
+              // Push away from obstacle
+              const pushAway = new Vec2(
+                this.pos.x - (obs.x + obs.w / 2),
+                this.pos.y - (obs.y + obs.h / 2)
+              ).normalize();
+              moveForce.add(pushAway.scale(2.2));
+            }
+          }
+        }
+
+        // Apply movement forces
+        if (moveForce.magSq() > 0.001) {
+          moveForce.normalize().scale(this.accel);
+          this.vel.add(moveForce);
+          if (this.vel.mag() > this.maxSpeed) {
+            this.vel.normalize().scale(this.maxSpeed);
+          }
+          // Smooth hull rotation towards movement direction
+          const targetHeading = Math.atan2(this.vel.y, this.vel.x);
+          this.heading = lerpAngle(this.heading, targetHeading, 0.12);
+        }
+
+        // Turret Aiming & Predictive Leading
+        if (hasLOS) {
+          // Lead target based on player velocity vector
+          const bulletSpeed = 7.5;
+          const travelTime = distToPlayer / bulletSpeed;
+          const predictedPos = player.pos.clone().add(player.vel.clone().scale(travelTime * 0.85));
+          const targetTurretAngle = Math.atan2(predictedPos.y - this.pos.y, predictedPos.x - this.pos.x);
+          this.turretAngle = lerpAngle(this.turretAngle, targetTurretAngle, 0.14);
+
+          // Fire if turret aligned
+          const angleDiff = Math.abs(normalizeAngle(this.turretAngle - targetTurretAngle));
+          if (angleDiff < 0.22 && distToPlayer < 450) {
+            this.fire(projectiles, soundEngine);
+          }
+        } else {
+          // Ricochet Bank Shot Search (Check 12 raycast angles off walls to bank shot around cover!)
+          const bankAngle = this.findBankShotAngle(player.pos, obstacles, bounds);
+          if (bankAngle !== null) {
+            this.turretAngle = lerpAngle(this.turretAngle, bankAngle, 0.15);
+            this.fire(projectiles, soundEngine);
+          } else {
+            // Otherwise track last known player position
+            const directAngle = Math.atan2(toPlayer.y, toPlayer.x);
+            this.turretAngle = lerpAngle(this.turretAngle, directAngle, 0.08);
+          }
+        }
+
+        this.updateKinematics(obstacles, bounds);
+      }
+
+      checkLineOfSight(targetPos, obstacles) {
+        for (const obs of obstacles) {
+          if (obs.intersectSegment(this.pos, targetPos)) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      findBankShotAngle(targetPos, obstacles, bounds) {
+        const rayCount = 14;
+        const step = (Math.PI * 2) / rayCount;
+
+        for (let i = 0; i < rayCount; i++) {
+          const angle = i * step;
+          const dir = Vec2.fromAngle(angle, 600);
+          const end = this.pos.clone().add(dir);
+
+          // Find first obstacle hit
+          let firstHit = null;
+          for (const obs of obstacles) {
+            const hit = obs.intersectSegment(this.pos, end);
+            if (hit && (!firstHit || hit.t < firstHit.t)) {
+              firstHit = hit;
+            }
+          }
+
+          if (firstHit) {
+            // Reflect ray and check if it reaches target
+            const bounceDir = dir.clone().reflect(firstHit.normal).normalize().scale(400);
+            const bounceEnd = firstHit.point.clone().add(bounceDir);
+            const playerHitDist = distToSegment(targetPos, firstHit.point, bounceEnd);
+
+            if (playerHitDist < 35) {
+              return angle; // Found bank shot angle!
+            }
+          }
+        }
+        return null;
+      }
+    }
+
+    // Angle Helpers
+    function normalizeAngle(a) {
+      while (a > Math.PI) a -= Math.PI * 2;
+      while (a < -Math.PI) a += Math.PI * 2;
+      return a;
+    }
+
+    function lerpAngle(current, target, factor) {
+      const diff = normalizeAngle(target - current);
+      return current + diff * factor;
+    }
+
+    function distToSegment(p, v, w) {
+      const l2 = v.dist(w) * v.dist(w);
+      if (l2 === 0) return p.dist(v);
+      let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+      t = Math.max(0, Math.min(1, t));
+      return p.dist(new Vec2(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y)));
+    }
+
+    /**
+     * Master Game Director & Canvas Render Controller
+     */
+    class GameDirector {
+      constructor() {
+        this.canvas = document.getElementById('arenaCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.bounds = { minX: 16, minY: 16, maxX: this.canvas.width - 16, maxY: this.canvas.height - 16 };
+
+        this.sound = new SoundEngine();
+        this.player = new Tank(150, this.canvas.height / 2, '#00f0ff', true);
+        this.ai = new AITank(this.canvas.width - 150, this.canvas.height / 2);
+
+        this.obstacles = [];
+        this.projectiles = [];
+        this.particles = [];
+
+        this.playerScore = 0;
+        this.aiScore = 0;
+        this.matchRound = 1;
+        this.isMatchRunning = false;
+        this.keys = {};
+        this.mousePos = new Vec2(this.canvas.width / 2, this.canvas.height / 2);
+
+        // Screenshake
+        this.screenShake = 0;
+
+        // Telemetry Data Points
+        this.telemetryHistory = [];
+
+        // DOM elements
+        this.playerHpBar = document.getElementById('playerHpBar');
+        this.playerHpText = document.getElementById('playerHpText');
+        this.playerEnergyBar = document.getElementById('playerEnergyBar');
+        this.playerEnergyText = document.getElementById('playerEnergyText');
+        this.aiHpBar = document.getElementById('aiHpBar');
+        this.aiHpText = document.getElementById('aiHpText');
+        this.aiStateText = document.getElementById('aiStateText');
+        this.matchScoreDisplay = document.getElementById('matchScoreDisplay');
+        this.playerScoreBadge = document.getElementById('playerScoreBadge');
+        this.aiScoreBadge = document.getElementById('aiScoreBadge');
+
+        this.modal = document.getElementById('gameModal');
+        this.startBtn = document.getElementById('startBtn');
+        this.modalTitle = document.getElementById('modalTitle');
+        this.modalSubtitle = document.getElementById('modalSubtitle');
+
+        // Oscilloscope & Telemetry Canvases
+        this.oscCanvas = document.getElementById('oscilloscopeCanvas');
+        this.oscCtx = this.oscCanvas.getContext('2d');
+        this.telemetryCanvas = document.getElementById('telemetryChartCanvas');
+        this.telemetryCtx = this.telemetryCanvas.getContext('2d');
+
+        this.initObstacles();
+        this.initInputListeners();
+        this.startLoop();
+      }
+
+      initObstacles() {
+        // Symmetrical Cyberpunk Arena Layout
+        this.obstacles = [
+          new Obstacle(460, 200, 80, 250), // Center Pillar
+          new Obstacle(240, 110, 40, 160), // Top Left Barrier
+          new Obstacle(240, 380, 40, 160), // Bottom Left Barrier
+          new Obstacle(720, 110, 40, 160), // Top Right Barrier
+          new Obstacle(720, 380, 40, 160)  // Bottom Right Barrier
+        ];
+      }
+
+      initInputListeners() {
+        window.addEventListener('keydown', (e) => {
+          this.keys[e.key.toLowerCase()] = true;
+          if (e.key.toLowerCase() === 'm') {
+            this.sound.toggleMute();
+          }
+        });
+
+        window.addEventListener('keyup', (e) => {
+          this.keys[e.key.toLowerCase()] = false;
+        });
+
+        this.canvas.addEventListener('mousemove', (e) => {
+          const rect = this.canvas.getBoundingClientRect();
+          const scaleX = this.canvas.width / rect.width;
+          const scaleY = this.canvas.height / rect.height;
+          this.mousePos.set((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+        });
+
+        this.canvas.addEventListener('mousedown', (e) => {
+          if (e.button === 0 && this.isMatchRunning) {
+            this.sound.init();
+            this.player.fire(this.projectiles, this.sound);
+          }
+        });
+
+        this.startBtn.addEventListener('click', () => {
+          this.sound.init();
+          this.modal.classList.add('hidden');
+          this.resetRound();
+          this.isMatchRunning = true;
+        });
+      }
+
+      resetRound() {
+        this.player.pos.set(150, this.canvas.height / 2);
+        this.player.vel.set(0, 0);
+        this.player.hp = 100;
+        this.player.energy = 100;
+
+        this.ai.pos.set(this.canvas.width - 150, this.canvas.height / 2);
+        this.ai.vel.set(0, 0);
+        this.ai.hp = 100;
+
+        this.projectiles = [];
+        this.particles = [];
+        this.updateHUD();
+      }
+
+      updatePlayerInput() {
+        let drive = 0;
+        let turn = 0;
+
+        if (this.keys['w'] || this.keys['arrowup']) drive += 1;
+        if (this.keys['s'] || this.keys['arrowdown']) drive -= 1;
+        if (this.keys['a'] || this.keys['arrowleft']) turn -= 1;
+        if (this.keys['d'] || this.keys['arrowright']) turn += 1;
+
+        // Steering rotation
+        this.player.heading += turn * this.player.turnSpeed;
+
+        // Nitro Boost toggle
+        this.player.isBoosting = (this.keys['shift'] || this.keys[' ']) && this.player.energy > 5 && drive !== 0;
+
+        let currentMaxSpeed = this.player.maxSpeed;
+        if (this.player.isBoosting) {
+          currentMaxSpeed *= 1.6;
+          this.player.energy = Math.max(0, this.player.energy - 0.7);
+
+          // Boost thruster particles
+          const thrusterPos = this.player.pos.clone().sub(Vec2.fromAngle(this.player.heading, 22));
+          this.particles.push(new Particle(thrusterPos.x, thrusterPos.y, '#00f0ff', 2.0));
+        }
+
+        // Acceleration along heading
+        if (drive !== 0) {
+          const forward = Vec2.fromAngle(this.player.heading, drive * this.player.accel);
+          this.player.vel.add(forward);
+          if (this.player.vel.mag() > currentMaxSpeed) {
+            this.player.vel.normalize().scale(currentMaxSpeed);
+          }
+        }
+
+        // Mouse aiming for turret
+        this.player.turretAngle = Math.atan2(this.mousePos.y - this.player.pos.y, this.mousePos.x - this.player.pos.x);
+
+        this.player.updateKinematics(this.obstacles, this.bounds);
+        this.sound.updateEnginePitch(this.player.vel.mag() / this.player.maxSpeed);
+      }
+
+      checkCombatCollisions() {
+        // Projectiles hitting Tanks
+        for (const p of this.projectiles) {
+          if (!p.alive) continue;
+
+          // Check hit on AI
+          if (p.isPlayer && p.pos.dist(this.ai.pos) < this.ai.radius + p.radius) {
+            p.alive = false;
+            this.ai.hp = Math.max(0, this.ai.hp - 25);
+            this.sound.playHit();
+            this.screenShake = 7;
+
+            for (let i = 0; i < 16; i++) {
+              this.particles.push(new Particle(p.pos.x, p.pos.y, '#ff007f', 4.5));
+            }
+
+            if (this.ai.hp <= 0) {
+              this.onTankDestroyed(this.ai, true);
+            }
+          }
+
+          // Check hit on Player
+          if (!p.isPlayer && p.pos.dist(this.player.pos) < this.player.radius + p.radius) {
+            p.alive = false;
+            this.player.hp = Math.max(0, this.player.hp - 25);
+            this.sound.playHit();
+            this.screenShake = 12;
+
+            for (let i = 0; i < 16; i++) {
+              this.particles.push(new Particle(p.pos.x, p.pos.y, '#00f0ff', 4.5));
+            }
+
+            if (this.player.hp <= 0) {
+              this.onTankDestroyed(this.player, false);
+            }
+          }
+        }
+      }
+
+      onTankDestroyed(tank, playerWon) {
+        this.sound.playExplosion();
+        this.screenShake = 18;
+
+        for (let i = 0; i < 45; i++) {
+          this.particles.push(new Particle(tank.pos.x, tank.pos.y, tank.color, 6.0));
+        }
+
+        this.isMatchRunning = false;
+
+        if (playerWon) {
+          this.playerScore++;
+          this.modalTitle.textContent = 'VICTORY ACHIEVED';
+          this.modalSubtitle.textContent = 'AI Nexus-Prime core disintegrated in tactical combat!';
+          this.startBtn.textContent = 'NEXT ROUND';
+        } else {
+          this.aiScore++;
+          this.modalTitle.textContent = 'SYSTEM OVERRIDE: DEFEATED';
+          this.modalSubtitle.textContent = 'Cyber-Vanguard hull breached. Neural opponent claims the round.';
+          this.startBtn.textContent = 'REPAIR & RETRY';
+        }
+
+        this.matchRound++;
+        setTimeout(() => {
+          this.modal.classList.remove('hidden');
+        }, 800);
+      }
+
+      updateHUD() {
+        this.playerHpBar.style.width = `${this.player.hp}%`;
+        this.playerHpText.textContent = `${this.player.hp}%`;
+        this.playerEnergyBar.style.width = `${Math.round(this.player.energy)}%`;
+        this.playerEnergyText.textContent = `${Math.round(this.player.energy)}%`;
+
+        this.aiHpBar.style.width = `${this.ai.hp}%`;
+        this.aiHpText.textContent = `${this.ai.hp}%`;
+        this.aiStateText.textContent = this.ai.state;
+
+        this.playerScoreBadge.textContent = this.playerScore;
+        this.aiScoreBadge.textContent = this.aiScore;
+        this.matchScoreDisplay.textContent = `${this.playerScore} : ${this.aiScore}`;
+      }
+
+      /* -----------------------------------------------------------
+         Real-Time Telemetry & Oscilloscope Rendering
+         ----------------------------------------------------------- */
+      renderOscilloscope() {
+        const w = this.oscCanvas.width;
+        const h = this.oscCanvas.height;
+        this.oscCtx.clearRect(0, 0, w, h);
+
+        if (!this.sound.analyser) {
+          // Flat standby line
+          this.oscCtx.strokeStyle = 'rgba(0, 255, 136, 0.3)';
+          this.oscCtx.lineWidth = 1.5;
+          this.oscCtx.beginPath();
+          this.oscCtx.moveTo(0, h / 2);
+          this.oscCtx.lineTo(w, h / 2);
+          this.oscCtx.stroke();
+          return;
+        }
+
+        const bufferLength = this.sound.analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        this.sound.analyser.getByteTimeDomainData(dataArray);
+
+        this.oscCtx.strokeStyle = '#00ff88';
+        this.oscCtx.lineWidth = 2;
+        this.oscCtx.shadowColor = '#00ff88';
+        this.oscCtx.shadowBlur = 6;
+        this.oscCtx.beginPath();
+
+        const sliceWidth = w / bufferLength;
+        let x = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          const v = dataArray[i] / 128.0;
+          const y = (v * h) / 2;
+          if (i === 0) this.oscCtx.moveTo(x, y);
+          else this.oscCtx.lineTo(x, y);
+          x += sliceWidth;
+        }
+        this.oscCtx.stroke();
+      }
+
+      renderTelemetryChart() {
+        const w = this.telemetryCanvas.width;
+        const h = this.telemetryCanvas.height;
+        this.telemetryCtx.clearRect(0, 0, w, h);
+
+        // Record current speeds
+        this.telemetryHistory.push({
+          playerSpeed: this.player.vel.mag() / this.player.maxSpeed,
+          aiSpeed: this.ai.vel.mag() / this.ai.maxSpeed
+        });
+        if (this.telemetryHistory.length > 36) this.telemetryHistory.shift();
+
+        // Draw Player speed line (Cyan)
+        this.telemetryCtx.strokeStyle = '#00f0ff';
+        this.telemetryCtx.lineWidth = 1.8;
+        this.telemetryCtx.beginPath();
+        const step = w / 36;
+        this.telemetryHistory.forEach((pt, idx) => {
+          const x = idx * step;
+          const y = h - (pt.playerSpeed * (h - 8)) - 4;
+          if (idx === 0) this.telemetryCtx.moveTo(x, y);
+          else this.telemetryCtx.lineTo(x, y);
+        });
+        this.telemetryCtx.stroke();
+
+        // Draw AI speed line (Magenta)
+        this.telemetryCtx.strokeStyle = '#ff007f';
+        this.telemetryCtx.lineWidth = 1.5;
+        this.telemetryCtx.beginPath();
+        this.telemetryHistory.forEach((pt, idx) => {
+          const x = idx * step;
+          const y = h - (pt.aiSpeed * (h - 8)) - 4;
+          if (idx === 0) this.telemetryCtx.moveTo(x, y);
+          else this.telemetryCtx.lineTo(x, y);
+        });
+        this.telemetryCtx.stroke();
+      }
+
+      /* -----------------------------------------------------------
+         Main Simulation Loop
+         ----------------------------------------------------------- */
+      startLoop() {
+        const loop = () => {
+          // Update game systems
+          if (this.isMatchRunning) {
+            this.updatePlayerInput();
+            this.ai.updateAI(this.player, this.obstacles, this.bounds, this.projectiles, this.sound);
+            this.checkCombatCollisions();
+            this.updateHUD();
+          }
+
+          // Update Projectiles
+          for (let i = this.projectiles.length - 1; i >= 0; i--) {
+            const p = this.projectiles[i];
+            p.update(this.obstacles, this.bounds, this.particles, this.sound);
+            if (!p.alive) this.projectiles.splice(i, 1);
+          }
+
+          // Update Particles
+          for (let i = this.particles.length - 1; i >= 0; i--) {
+            const pt = this.particles[i];
+            pt.update();
+            if (pt.alpha <= 0) this.particles.splice(i, 1);
+          }
+
+          // Canvas Screen Shake
+          this.ctx.save();
+          if (this.screenShake > 0) {
+            const rx = (Math.random() * 2 - 1) * this.screenShake;
+            const ry = (Math.random() * 2 - 1) * this.screenShake;
+            this.ctx.translate(rx, ry);
+            this.screenShake *= 0.88;
+            if (this.screenShake < 0.2) this.screenShake = 0;
+          }
+
+          // Clear & Draw Cyber Arena Grid
+          this.ctx.fillStyle = '#07090e';
+          this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+          this.drawArenaGrid();
+
+          // Draw Obstacles
+          for (const obs of this.obstacles) obs.draw(this.ctx);
+
+          // Draw Particles
+          for (const pt of this.particles) pt.draw(this.ctx);
+
+          // Draw Projectiles
+          for (const p of this.projectiles) p.draw(this.ctx);
+
+          // Draw Tanks
+          this.player.draw(this.ctx);
+          this.ai.draw(this.ctx);
+
+          this.ctx.restore();
+
+          // Render Real-Time Telemetry Panels
+          this.renderOscilloscope();
+          this.renderTelemetryChart();
+
+          requestAnimationFrame(loop);
+        };
+
+        requestAnimationFrame(loop);
+      }
+
+      drawArenaGrid() {
+        this.ctx.save();
+        this.ctx.strokeStyle = 'rgba(56, 189, 248, 0.04)';
+        this.ctx.lineWidth = 1;
+        const gridSize = 40;
+
+        for (let x = 0; x < this.canvas.width; x += gridSize) {
+          this.ctx.beginPath();
+          this.ctx.moveTo(x, 0);
+          this.ctx.lineTo(x, this.canvas.height);
+          this.ctx.stroke();
+        }
+
+        for (let y = 0; y < this.canvas.height; y += gridSize) {
+          this.ctx.beginPath();
+          this.ctx.moveTo(0, y);
+          this.ctx.lineTo(this.canvas.width, y);
+          this.ctx.stroke();
+        }
+
+        // Arena Outer Boundary Perimeter
+        this.ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeRect(this.bounds.minX, this.bounds.minY, this.bounds.maxX - this.bounds.minX, this.bounds.maxY - this.bounds.minY);
+        this.ctx.restore();
+      }
+    }
+
+    // Launch game when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      new GameDirector();
+    });
+  </script>
+</body>
+</html>
